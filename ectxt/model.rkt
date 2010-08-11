@@ -254,7 +254,7 @@
   
   (test-results))
 
-(printf "Expressions with holes & hide-hole: [Unknown]\n")
+(printf "Expressions with holes & hide-hole, p2 variation: [Good/Bad]\n")
 (require 'unknown:complicated-contexts)
 (newline)
 
@@ -344,6 +344,6 @@
   
   (test-results))
 
-(printf "hide-hole preserving plugger: [Unknown]\n")
+(printf "hide-hole preserving plugger, p2 variation: [Bad/Good]\n")
 (require 'hide-hole-preservation)
 (newline)
