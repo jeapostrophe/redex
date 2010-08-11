@@ -1,6 +1,6 @@
 #lang racket/load
 
-(module okay:simple-contexts racket
+(module good:simple-contexts racket
   (require redex)
   
   (define-language ectxt
@@ -42,11 +42,11 @@
   (printf "\tProperty 1:\n")
   (redex-check ectxt e (property-1 (term e))))
 
-(printf "Expressions without holes:\n")
-(require 'okay:simple-contexts)
+(printf "Expressions without holes: [Good]\n")
+(require 'good:simple-contexts)
 (newline)
 
-(module broken:complicated-contexts racket
+(module broken-p1:complicated-contexts racket
   (require redex)
   
   (define-language ectxt
@@ -87,33 +87,33 @@
   (printf "\tProperty 1:\n")
   (redex-check ectxt e (property-1 (term e))))
 
-(printf "Expressions with holes:\n")
-(require 'broken:complicated-contexts)
+(printf "Expressions with holes: [Bad]\n")
+(require 'broken-p1:complicated-contexts)
 (newline)
 
-(module complicated-contexts racket
+(module broken-p2:complicated-contexts racket
   (require redex)
   
   (define-language ectxt
     [e a
        the-hole
-       (hide-hole e)
+       (the-hide-hole e)
        (e e)]
     [a variable-not-otherwise-mentioned])
   
   (define (decomposer t)
     (list* (list 'the-hole t)
            (match t
-             [(list 'hide-hole e_1)
+             [(list 'the-hide-hole e_1)
               empty]
              [(list e_1 e_2)
               (append
                (for/list ([d_lhs (in-list (decomposer e_1))])
                  (match-define (list E_lhs p_lhs) d_lhs)
-                 (list (list E_lhs (list 'hide-hole e_2)) p_lhs))
+                 (list (list E_lhs (list 'the-hide-hole e_2)) p_lhs))
                (for/list ([d_rhs (in-list (decomposer e_2))])
                  (match-define (list E_rhs p_rhs) d_rhs)
-                 (list (list (list 'hide-hole e_1) E_rhs) p_rhs)))]
+                 (list (list (list 'the-hide-hole e_1) E_rhs) p_rhs)))]
              [_
               empty])))
   
@@ -124,14 +124,15 @@
       (term a)]
      [(the-hole any_p)
       (term any_p)]
-     [((hide-hole e) any_p)
+     [((the-hide-hole e) any_p)
       (term e)]
      [((e_1 e_2) any_p)
       (term (,(plugger (term (e_1 any_p))) ,(plugger (term (e_2 any_p)))))]))
   
   (define (property-1 t)
-    (for/and ([d (in-list (decomposer t))])      
-      (equal? t (plugger d))))
+    (for/and ([d (in-list (decomposer t))])
+      (define p (plugger d))
+      (equal? t p)))
   
   (printf "\tProperty 1:\n")
   (redex-check ectxt e 
@@ -145,6 +146,6 @@
   (redex-check ectxt (e_1 e_2 e)
                (property-2 (term e_1) (term e_2) (term e))))
 
-(printf "Expressions with holes & hide-hole:\n")
-(require 'complicated-contexts)
+(printf "Expressions with holes & hide-hole: [Good/Bad]\n")
+(require 'broken-p2:complicated-contexts)
 (newline)
