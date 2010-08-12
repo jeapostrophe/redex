@@ -347,3 +347,95 @@
 (printf "hide-hole preserving plugger, p2 variation: [Bad/Good]\n")
 (require 'hide-hole-preservation)
 (newline)
+
+(module multi-result-plug racket
+  (require redex)
+  
+  (define-language ectxt
+    [e a
+       the-hole
+       (e e)]
+    [a variable-not-otherwise-mentioned])
+  
+  (define (decomposer t)
+    (list* (list 'the-hole t)
+           (match t
+             [(list e_1 e_2)
+              (append
+               (for/list ([d_lhs (in-list (decomposer e_1))])
+                 (match-define (list E_lhs p_lhs) d_lhs)
+                 (list (list E_lhs e_2) p_lhs))
+               (for/list ([d_rhs (in-list (decomposer e_2))])
+                 (match-define (list E_rhs p_rhs) d_rhs)
+                 (list (list e_1 E_rhs) p_rhs)))]
+             [_
+              empty])))
+  
+  (define plugger
+    (term-match/single
+     ectxt
+     [(a any_p)
+      empty]
+     [(the-hole any_p)
+      (list (term any_p))]
+     [((e_1 e_2) any_p)
+      (append 
+       (for/list ([p_lhs (in-list (plugger (term (e_1 any_p))))])
+         (list p_lhs (term e_2)))
+       (for/list ([p_rhs (in-list (plugger (term (e_2 any_p))))])
+         (list (term e_1) p_rhs)))]))
+  
+  (define (property-1a t)
+    (for/and ([d (in-list (decomposer t))])
+      (for/or ([p (in-list (plugger d))])
+        (equal? t p))))
+  (define (property-1b t u)
+    (for/and ([p (in-list (plugger (list t u)))])
+      (for/or ([d (in-list (decomposer p))])
+        (equal? (list t u) d))))
+  
+  (printf "\tProperty 1a:\n")
+  (redex-check ectxt e 
+               (property-1a (term e)))
+  (printf "\tProperty 1b:\n")
+  (redex-check ectxt (e_1 e_2) 
+               (property-1b (term e_1) (term e_2)))
+  
+  (define (property-2 t u v)
+    (define (concat-map f xs)
+      (apply append (map f xs)))
+    (define tu-v
+      (concat-map (λ (w) (plugger (list w v)))
+                  (plugger (list t u))))
+    (define t-uv
+      (concat-map (λ (w) (plugger (list t w)))
+                  (plugger (list u v))))
+    (and (for/and ([r tu-v]) (member r t-uv))
+         (for/and ([r t-uv]) (member r tu-v))))
+  
+  (printf "\tProperty 2:\n")
+  (redex-check ectxt (e_1 e_2 e_3)
+               (property-2 (term e_1) (term e_2) (term e_3)))
+  
+  (define num-holes
+    (term-match/single
+     ectxt
+     [a 0]
+     [the-hole 1]
+     [(e_1 e_2)
+      (+ (num-holes (term e_1))
+         (num-holes (term e_2)))]))
+  
+  (printf "\tProperty 2’:\n")
+  (redex-check ectxt (e_1 e_2 e_3)
+               (or (zero? (num-holes (term e_2)))
+                   (property-2 (term e_1) (term e_2) (term e_3))))
+  
+  (printf "\tProperty 2’’:\n")
+  (redex-check ectxt (e_1 e_2 e_3)
+               (or (not (= 1 (num-holes (term e_1)) (num-holes (term e_2))))
+                   (property-2 (term e_1) (term e_2) (term e_3)))))
+
+(printf "multi-result plug, variations on p1 and p2: Good?\n")
+(require 'multi-result-plug)
+(newline)
