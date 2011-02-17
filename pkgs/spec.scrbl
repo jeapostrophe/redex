@@ -15,8 +15,6 @@ Before presenting the new proposal, I review what I see the problems are with wh
 I think of these as "test cases" on the new package system. If these are not adequate, then
 the new package system is unlikely to be worth it.
 
-@local-table-of-contents[#:style 'immediate-only]
-
 @subsection{PLaneT packages are second-class}
 
 First, they cannot come with a distribution: it is not possible for Racket developers to provide installers for a Racket instance that includes PLaneT packages. This affects core developers and educators in particular: This affects core developers by encouraging more and more functionality in the core. (For example, Redex was once separate, but was moved in for convenience.) This affects educators because it complicates their installation instructions and puts pressure to move textbook support into the core (c.f. PLAI, Picturing Programs, HTDP, DMDA, etc.) 
@@ -41,7 +39,7 @@ Although all PLaneT packages are de facto open source, it is very difficult to f
 
 @subsection{PLaneT packages are hard to discover or trust}
 
-When someone installs a fresh Racket installation, there is no indication that PLaneT even exists from the installer or from inside of DrRacket, etc. Even if someone discovers the site, it is very difficult to figure out what packages are worth investigating to see what they do and/or gaining trust in them.
+When someone installs a fresh Racket installation, there is no indication that PLaneT even exists from the installer or from inside of DrRacket, etc. Even if someone discovers the site, it is very difficult to figure out what packages are worth investigating to see what they do and/or gaining trust in them. The amount of duplication on the Web page and the shallow hierarchy make it even more difficult to even discover what options are available.
 
 @subsection{PLaneT is too centralized}
 
@@ -67,18 +65,96 @@ When a PLaneT package is installed, the compilation process is very expensive, e
 
 The security defaults for PLaneT are very poor. For example, there is no verification that the right file came through; there is no check that the real PLaneT server was reached; the program is compiled without a sandbox (and since macros are infinitely powerful, compilation can mean compromise); a module can spawn PLaneT installations in sub-modules far away; etc.
 
+@subsection{Nothing is ever private}
+
+In Racket we have a convention of naming subdirectories of packages @filepath{private} but this does not actually prevent anything outside the package from in fact using these modules.
+
 @section{Good things about the current regime}
 
 Nevertheless, there are still some good things about PLaneT that we should maintain.
 
 @subsection{It just works}
 
-XXX No knowledge of files, dependencies, etc, needed
+Modules are totally self-contained in their dependencies and packages automatically install. Contrast this to Perl where may have to iterate to a fixed-point attempting to run a script to discover its dependencies and install them as you go. In effect, there is zero system administration of the packages installed on a system.
 
 @subsection{Free hosting of source in central place}
 
-XXX Compared to some languages where libraries are found by randomly Googling, it is nice to have one location
+It is good that we provide a free host to serve and learn about packages.
 
 @subsection{Package preview is very easy}
 
-XXX You can view library source, docs, contracts, etc before downloading and using it
+It is good that the PLaneT site provides easy access to all versions of a package with their documentation and source readily apparent.
+
+@section{Going forward}
+
+With these issues in mind, we'd like to improve the situation. As a first step, I think it is important to distinguish between a packaging system and a package distribution and discovery system.
+
+As it stands, we have a packaging system (@filepath{.plt} files) with many complicated features that aren't really used (as far as I know) and an integrated packaging and package distribution system (PLaneT) that sits atop @filepath{.plt}s, but reimplements some features.
+
+The perspective I'd like to take in improving packages in Racket is to start from a strict separation of packages and package distribution, then expand the capablities of our base packages, then build a more liberal and modern package distribution system.
+
+@section{Packages}
+
+In this section I talk about some of the properties of the packaging system at high-level then try to specify some low-level possible implementations.
+
+@subsection{Vocabulary}
+
+A @deftech{module} is the standard Racket module: a single file with dependencies and phased exports. For example, @filepath{web-server/web-server.rkt} is a module.
+
+A @deftech{collection} is a tree of @tech{module}s and associated data. For example, @filepath{web-server} is a collection of many modules and a few data files.
+
+A @deftech{package} is a set of @tech{collection}s and metadata. For example, the Web Server package might contain the @filepath{web-server} and @filepath{tests/web-server} collections; the DrRacket package might contain the @filepath{drracket} and @filepath{drscheme} collections (one provides backward compatiblity, of course.)
+
+Package metadata includes at least an identifier, a natural number version, @tech{package} dependencies, and @tech{module} protection information. For example, the Web Server package may be identified by @filepath{racket-web-server}, at version 30, depend on the XML package version 49 or higher, and mark @filepath{web-server/private} as private.
+
+An @deftech{installation} is a set of @tech{package}s such that each pairing of an identifier and a particular version appears at most once. For example, the Web Server version 30 may not be in an installation twice. This does @emph{not} preclude packages installed at different versions (Web Server version 30 and 31) or packages with common modules (both the Xexpr and the SXML package providing a public @filepath{xml} module.)
+
+@subsection{Principles}
+
+Modules should not need to reference anything about the package they are apart of or that they depend on. This information will derived from their location on the filesystem, similiar to our current collections.
+
+Installing a new version of package (version 40 to 41) will affect all dependents of that package, by default.
+
+Package dependencies may be "frozen" at their current versions to ensure that no future installation operation will affect them.
+
+Backwards incompatible changes of a package will require a new package identifer. (Similar to libgtk and libgtk2.)
+
+Module protection information is respected.
+
+Packageless modules should have an easy to determine set of modules available to them from the set of installed packages preferring newer versions.
+
+Locating an installed module should be easy and in most cases, obvious.
+
+Uninstalling packages should be possible.
+
+@subsection{Plausible Implementation}
+
+(These details are much less important than what appears above. At the least they are an attempt to show that the above is feasible with minimal changes to the existing Racket infrastructure.)
+
+An installation could be divided into @racket[_n] heaps where @racket[_n] is at least @racket[2] for a user and system heap.
+
+Each heap would contain information about installed packages---such as why they were installed (for something like @exec{apt-get autoremove}) and whether their dependencies are frozen---in a heap level database: @filepath{<heap>/install.rktd}.
+
+Packages would be simple archives (as opposed to our homegrown @filepath{.plt}s) containing a metadata file (@filepath{info.rkt}) and collection directories.
+
+The package heaps would be structured as @filepath{<heap>/<package-id>/<version>/<collect>} where the contents of the collections is identical to the package source.
+
+Each package's installation (@filepath{<heap>/<package-id>/<version>}) would contain a linking directory (@filepath{.links}) with shadow modules for every module visible to them. For example,
+@filepath{system/web-server/30/.links/xml/main.rkt} would roughly be:
+@racketmod[racket/shadow
+           (require (real system/xml/49/xml/main))
+           (provide (all-from-out (real system/xml/49/xml/main)))]
+Modules not written in the restricted shadow language would not see the "heap level" of modules and could not use the "real" modules, instead @racket[(require xml)] in the Web Server package would transparently be rewritten to @racket[(require (real system/web-server/30/.links/xml))] and rely on the package installation to locate the real module. This includes modules that are part of the package. (N.B. The use of shadow modules specifically does not rely on filesystem links that are confusing and do not work on Windows.)
+
+A well-known package @filepath{<heap>/SYSTEM/+inf.0/} would contain a linking directory that serves as the default for packageless modules.
+
+XXX
+
+@section{Package Distribution}
+
+XXX
+
+
+
+
+
