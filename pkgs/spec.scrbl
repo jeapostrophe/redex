@@ -131,7 +131,7 @@ Uninstalling packages should be possible.
 
 (These details are much less important than what appears above. At the least they are an attempt to show that the above is feasible with minimal changes to the existing Racket infrastructure.)
 
-An installation could be divided into @racket[_n] heaps where @racket[_n] is at least @racket[2] for a user and system heap.
+An installation could be divided into @racket[_n] heaps where @racket[_n] is at least @racket[2] for a user and system heap. (Other heaps could serve a group (i.e. class) specific heaps.)
 
 Each heap would contain information about installed packages---such as why they were installed (for something like @exec{apt-get autoremove}) and whether their dependencies are frozen---in a heap level database: @filepath{<heap>/install.rktd}.
 
@@ -146,15 +146,67 @@ Each package's installation (@filepath{<heap>/<package-id>/<version>}) would con
            (provide (all-from-out (real system/xml/49/xml/main)))]
 Modules not written in the restricted shadow language would not see the "heap level" of modules and could not use the "real" modules, instead @racket[(require xml)] in the Web Server package would transparently be rewritten to @racket[(require (real system/web-server/30/.links/xml))] and rely on the package installation to locate the real module. This includes modules that are part of the package. (N.B. The use of shadow modules specifically does not rely on filesystem links that are confusing and do not work on Windows.)
 
-A well-known package @filepath{<heap>/SYSTEM/+inf.0/} would contain a linking directory that serves as the default for packageless modules.
+A well-known package (@filepath{<heap>/SYSTEM/+inf.0/}) would contain a linking directory that serves as the default for packageless modules. This would contain the most recent version of all package modules and prefer the last installed package when two packages have conflicting modules. (This ensures that new unpackaged code by default uses the newer versions of everything.)
 
-XXX
+@subsection{Discussion}
 
+This implementation requires very little change from the implementation depending on the level of module protection offered. For example, it appears to me that a standard @racket[require] transformer in the @racketmodname[racket] language could implement the shadow name mangling and we could use unprovided syntax to protect the underlying real @racket[require] form. After that, the various heaps would leverage the existing support for a collection search path. It would require the module level splicing, which is already implemented.
+
+This implementation plays well with versioning systems because the sources of packages are kept distinct and on a development system (on operating system where it exists) filesystem links could directly tie repositories and installations.
+
+This implementation provides good support for structuring the core collections as a few packages and ensures that dependencies can't form behind your back (as witness by the many distspec breaks) because all modules see modules from their linking directory rather than the current installation.
+
+I can't really judge how well this implementation keeps things "in the language". It relies on the state established by the package installer to give meaning to programs and that state is controlled by the package's @filepath{info.rkt} file. However, this might be a realistic sweet-spot given the importance of packages to the program development and deployment environment.
+
+I think the biggest problem with this implementation is that without a tool it could be confusing to figure out what module file a require statement in a program will resolve to. For example, you have to look in the linking directory (and know to look there), read the fully expanded name, then look at that file. In what I believe to be the common case where there is a single version of every package and no conflicting packages it is very obvious which module will be used, provided you know what package provides a collect. I also think it will be common for packages to provide one collect, with the same name, so hopefully that will be easy to. The situation is the same for packageless files although there is an interesting problem in that the meaning of a program can change because changes in the installation state. Even when that occurs, I think the rule of most new packages is easy to follow.
+
+Here's a strawman implementation that I think solves that problem: There is a single heap and non-conflicting modules are copied into it, preferring the first installed version. When a new package conflicts with an older one, it is stored in a special name-mangled place. All modules can access everything in the heap, but we perform a simple analysis when compiling to error if other modules (private or non-dependents) are used. When you look at the heap, you cannot tell what module came from what package, but you can easily tell what modules are visible. I think this technique requires more core changes, interacts poorly with versioning systems (because of copying) [think, for example, what our @filepath{.gitignore} will contain in the core repository and how we will develop the core and do other work with some packages installed; either the rules will be complicated or we'll need a separation of the source and installation even for the core], depending on how the module protection works it may be easy to accidentally create dependencies, and finally it keeps the meaning of programs totally "in the language" because the state of packages is almost invisible to the runtime. Clearly this is my strawman and I don't think these "costs" are worth it, I'd like to know your opinion and proposed implementation.
+
+@section{Glue between installation and distribution}
+
+The packaging system only deals with what happens to packages when the get installed while the distribution deals with how they get there. These could be TOTALLY @emph{separate} where packages refer to identifiers with no definite connection to the distribution system OR they could totally @emph{connected} where packages refer to the distribution system explicitly (as in PLaneT.)
+
+I think there should be a loose connection. This is to facilitate easy installation with downloading a bunch of tarballs and installing them one-by-one (like old Linux distributions) and facilitate easy upgrade by keeping a connection between installed packages and where they came from.
+
+My explicit proposal: package identifiers are valid URL path elements ending in @filepath{.rkb} (Racket Ball, obviously); a package metadate file may contain a dependency specification like @filepath{web-server.rkb/=40} or @filepath{web-server.rkb/40} for exactly 40 and at least 40 respectively; a metadata file @emph{may} also specify a URL ending in such a specification, like @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=40} or @filepath{https://secured00d.nsa.gov/sekrut/web-server.rkb/=41}, etc. If such a URL is given, it simply specifies a default place to find the package if it is not already available, but @emph{any} @filepath{web-server.rkb} package will do.
+
+Every URL-less specification will implicitly reference the centrally hosted PLaneT server.
+
+A standard file-based protocol will exist between package clients and package servers so no special software with intricate setups will be necessary to start a new package server. This will facilitate private servers and official mirrors.
+
+Upgrades could be facilitated by checking the version returned by GET-ing @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb} which would REDIRECT to @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=@racket[_newest]}. Thus, the URL originally used to install the package (if it was not already located on the filesystem) would be saved to allow update checking, etc.
+         
 @section{Package Distribution}
 
-XXX
+The package distribution system (PLaneT) is easy to change and evolve as we go, provided we use a simple URL/HTTP-based mechanism for the clients. 
 
+I do have a few ideas and basic things to suggest:
+@itemize[
+         @item{Give away accounts as we do now.}
+         @item{Allow package submission from the command line by using a HTTP POST with an AUTH header.}
+         @item{Provide a simple interface to remove and replace packages (including old versions) arbitrarily.}
+         @item{Restrict package names to be prefixed by the user name of the account.}
+         @item{Use social tags to filter and categorize packages. No fixed vocabulary.}
+         @item{Use Amazon-style review system to establish reputation.}
+         @item{Connect to existing @emph{external} bug tracking systems like Launchpad and Github via package metadata.}
+         @item{Use reputation to "bless" packages with prefix-less names. For example, jay-mccarthy:mongodb.rkb might become mongodb.rkb after such a blessing.}
+         @item{Use Google custom search to package documentation/source.}
+         @item{Allow the use of checksums and HTTPS to ensure package contents are as expected.}
+         @item{Use moderators to "black ball" malicious packages.}
+]
 
+These ideas give clear priority to leveraging existing tools and limiting the amount of pain and maintenance for PLaneT.
 
+Some decisions in the packaging layer have big effects on the distribution system, in particular give it the ability to drop certain issues. For example, it is easy to improve a package because you can easily find and change the code on your system then if the maintainer isn't available, you can make a new package with the same module names (so the switch requires no changes in code), then leave a review for the old package directing users to the new one, etc.
 
+@section{Final Thoughts}
 
+There are a few big open problems in my mind:
+@itemize[
+         @item{Informing new users on installation what packages they might want. We could use the reputation and download counts, but we currently have no final "Get Packages" step in our installers.}
+         @item{Interacting with operating system distribution. Hopefully this more file-based infrastructure would ease the process, but I don't really know much about this.}
+         @item{Removing the pain of installation by keeping safe ZOs on the server.}
+         @item{Once this infrastructure is in place, we should spend a good amount of time breaking the core into packages that are distributed optionally and separately. I believe this requires a good "post install" to keep the batteries included, so to speak.}
+]
+
+Lastly, clearly the existing PLaneT infrastructure needs to stay in place, but I think it should be a vestigial structure that withers away.
