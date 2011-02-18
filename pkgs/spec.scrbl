@@ -139,12 +139,11 @@ Packages would be simple archives (as opposed to our homegrown @filepath{.plt}s)
 
 The package heaps would be structured as @filepath{<heap>/<package-id>/<version>/<collect>} where the contents of the collections is identical to the package source.
 
-Each package's installation (@filepath{<heap>/<package-id>/<version>}) would contain a linking directory (@filepath{.links}) with shadow modules for every module visible to them. For example,
-@filepath{system/web-server/30/.links/xml/main.rkt} would roughly be:
+Each package's installation (@filepath{<heap>/<package-id>/<version>}) would contain a linking directory (@filepath{.links}) created by the installer with shadow modules for every module visible to them. For example, @filepath{system/web-server/30/.links/xml/main.rkt} would roughly be:
 @racketmod[racket/shadow
            (require (real system/xml/49/xml/main))
            (provide (all-from-out (real system/xml/49/xml/main)))]
-Modules not written in the restricted shadow language would not see the "heap level" of modules and could not use the "real" modules, instead @racket[(require xml)] in the Web Server package would transparently be rewritten to @racket[(require (real system/web-server/30/.links/xml))] and rely on the package installation to locate the real module. This includes modules that are part of the package. (N.B. The use of shadow modules specifically does not rely on filesystem links that are confusing and do not work on Windows.)
+Modules not written in the restricted shadow language would not see the "heap level" of modules and could not use the "real" modules, instead @racket[(require xml)] in the Web Server package would transparently be rewritten to @racket[(require (real system/web-server/30/.links/xml))] and rely on the package installation to locate the real module. This includes modules that are part of the package. Module privacy is enforced by @emph{not} creating shadow modules. (N.B. The use of shadow modules specifically does not rely on filesystem links that are confusing and do not work on Windows.)
 
 A well-known package (@filepath{<heap>/SYSTEM/+inf.0/}) would contain a linking directory that serves as the default for packageless modules. This would contain the most recent version of all package modules and prefer the last installed package when two packages have conflicting modules. (This ensures that new unpackaged code by default uses the newer versions of everything.)
 
@@ -168,20 +167,23 @@ The packaging system only deals with what happens to packages when the get insta
 
 I think there should be a loose connection. This is to facilitate easy installation with downloading a bunch of tarballs and installing them one-by-one (like old Linux distributions) and facilitate easy upgrade by keeping a connection between installed packages and where they came from.
 
-My explicit proposal: package identifiers are valid URL path elements ending in @filepath{.rkb} (Racket Ball, obviously); a package metadata file may contain a dependency specification like @filepath{web-server.rkb/=40} or @filepath{web-server.rkb/40} for exactly 40 and at least 40 respectively; a metadata file @emph{may} also specify a URL ending in such a specification, like @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=40} or @filepath{https://secured00d.nsa.gov/sekrut/web-server.rkb/=41}, etc. If such a URL is given, it simply specifies a default place to find the package if it is not already available, but @emph{any} @filepath{web-server.rkb} package will do.
+My explicit proposal: package identifiers are valid URL path elements ending in @filepath{.rkb} (Racket Ball, obviously); a package metadata file may contain a dependency specification like @filepath{web-server.rkb/=40} or @filepath{web-server.rkb/40} for exactly 40 and at least 40 respectively; a metadata file @emph{may} also specify a URL ending in such a specification, like @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=40} or @filepath{https://secured00d.nsa.gov/sekrut/web-server.rkb/=41}, etc. If such a URL is given, it simply specifies a default place to find the package if it is not already available, but @emph{any} @filepath{web-server.rkb} package will do. 
 
 Every URL-less specification will implicitly reference the centrally hosted PLaneT server.
 
 A standard file-based protocol will exist between package clients and package servers so no special software with intricate setups will be necessary to start a new package server. This will facilitate private servers and official mirrors.
 
 Upgrades could be facilitated by checking the version returned by GET-ing @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb} which would REDIRECT to @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=@racket[_newest]}. Thus, the URL originally used to install the package (if it was not already located on the filesystem) would be saved to allow update checking, etc.
-         
+
+As an embelishment, it would be nice to be able to rely less on a particular URL name so that, for example, Github (and similar sites) could serve as package hosts---either by directly supporting @filepath{git://} URLs or by using the "Download Source" feature. Perhaps to provide more flexibilty we could optionally allow the URL, whether it is an archive, and the name of the package to be three separate pieces.
+
 @section{Package Distribution}
 
 The package distribution system (PLaneT) is easy to change and evolve as we go, provided we use a simple URL/HTTP-based mechanism for the clients. 
 
 I do have a few ideas and basic things to suggest:
 @itemize[
+         @item{Retain command line downloading of packages.}
          @item{Give away accounts as we do now.}
          @item{Allow package submission from the command line by using a HTTP POST with an AUTH header.}
          @item{Provide a simple interface to remove and replace packages (including old versions) arbitrarily.}
@@ -193,6 +195,7 @@ I do have a few ideas and basic things to suggest:
          @item{Use Google custom search to package documentation/source.}
          @item{Allow the use of checksums and HTTPS to ensure package contents are as expected.}
          @item{Use moderators to "black ball" malicious packages.}
+         @item{Host information about packages hosted elsewhere, such as Github, without requiring source on server.}
 ]
 
 These ideas give clear priority to leveraging existing tools and limiting the amount of pain and maintenance for PLaneT.
