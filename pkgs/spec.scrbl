@@ -91,7 +91,7 @@ With these issues in mind, we'd like to improve the situation. As a first step, 
 
 As it stands, we have a packaging system (@filepath{.plt} files) with many complicated features that aren't really used (as far as I know) and an integrated packaging and package distribution system (PLaneT) that sits atop @filepath{.plt}s, but reimplements some features.
 
-The perspective I'd like to take in improving packages in Racket is to start from a strict separation of packages and package distribution, then expand the capablities of our base packages, then build a more liberal and modern package distribution system.
+The perspective I'd like to take in improving packages in Racket is to start from a strict separation of packages and package distribution, then expand the capabilities of our base packages, then build a more liberal and modern package distribution system.
 
 @section{Packages}
 
@@ -103,7 +103,7 @@ A @deftech{module} is the standard Racket module: a single file with dependencie
 
 A @deftech{collection} is a tree of @tech{module}s and associated data. For example, @filepath{web-server} is a collection of many modules and a few data files.
 
-A @deftech{package} is a set of @tech{collection}s and metadata. For example, the Web Server package might contain the @filepath{web-server} and @filepath{tests/web-server} collections; the DrRacket package might contain the @filepath{drracket} and @filepath{drscheme} collections (one provides backward compatiblity, of course.)
+A @deftech{package} is a set of @tech{collection}s and metadata. For example, the Web Server package might contain the @filepath{web-server} and @filepath{tests/web-server} collections; the DrRacket package might contain the @filepath{drracket} and @filepath{drscheme} collections (one provides backward compatibility, of course.)
 
 Package metadata includes at least an identifier, a natural number version, @tech{package} dependencies, and @tech{module} protection information. For example, the Web Server package may be identified by @filepath{racket-web-server}, at version 30, depend on the XML package version 49 or higher, and mark @filepath{web-server/private} as private.
 
@@ -111,13 +111,13 @@ An @deftech{installation} is a set of @tech{package}s such that each pairing of 
 
 @subsection{Principles}
 
-Modules should not need to reference anything about the package they are apart of or that they depend on. This information will derived from their location on the filesystem, similiar to our current collections.
+Modules should not need to reference anything about the package they are apart of or that they depend on. This information will derived from their location on the filesystem, similar to our current collections.
 
 Installing a new version of package (version 40 to 41) will affect all dependents of that package, by default.
 
 Package dependencies may be "frozen" at their current versions to ensure that no future installation operation will affect them.
 
-Backwards incompatible changes of a package will require a new package identifer. (Similar to libgtk and libgtk2.)
+Backwards incompatible changes of a package will require a new package identifier. (Similar to libgtk and libgtk2.)
 
 Module protection information is respected.
 
@@ -168,7 +168,7 @@ The packaging system only deals with what happens to packages when the get insta
 
 I think there should be a loose connection. This is to facilitate easy installation with downloading a bunch of tarballs and installing them one-by-one (like old Linux distributions) and facilitate easy upgrade by keeping a connection between installed packages and where they came from.
 
-My explicit proposal: package identifiers are valid URL path elements ending in @filepath{.rkb} (Racket Ball, obviously); a package metadate file may contain a dependency specification like @filepath{web-server.rkb/=40} or @filepath{web-server.rkb/40} for exactly 40 and at least 40 respectively; a metadata file @emph{may} also specify a URL ending in such a specification, like @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=40} or @filepath{https://secured00d.nsa.gov/sekrut/web-server.rkb/=41}, etc. If such a URL is given, it simply specifies a default place to find the package if it is not already available, but @emph{any} @filepath{web-server.rkb} package will do.
+My explicit proposal: package identifiers are valid URL path elements ending in @filepath{.rkb} (Racket Ball, obviously); a package metadata file may contain a dependency specification like @filepath{web-server.rkb/=40} or @filepath{web-server.rkb/40} for exactly 40 and at least 40 respectively; a metadata file @emph{may} also specify a URL ending in such a specification, like @filepath{http://planet.racket-lang.org/pkgs/web-server.rkb/=40} or @filepath{https://secured00d.nsa.gov/sekrut/web-server.rkb/=41}, etc. If such a URL is given, it simply specifies a default place to find the package if it is not already available, but @emph{any} @filepath{web-server.rkb} package will do.
 
 Every URL-less specification will implicitly reference the centrally hosted PLaneT server.
 
