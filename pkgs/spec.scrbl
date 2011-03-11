@@ -117,7 +117,7 @@ Installing a new version of package (version 40 to 41) will affect all dependent
 
 Package dependencies may be "frozen" at their current versions to ensure that no future installation operation will affect them.
 
-Backwards incompatible changes of a package will require a new package identifier. (Similar to libgtk and libgtk2.)
+Backwards incompatible changes of a package will require a new package identifier. (Similar to libgtk and libgtk2.) (I don't feel strongly about this.)
 
 Module protection information is respected.
 
@@ -155,7 +155,8 @@ This implementation plays well with versioning systems because the sources of pa
 
 This implementation provides good support for structuring the core collections as a few packages and ensures that dependencies can't form behind your back (as witness by the many distspec breaks) because all modules see modules from their linking directory rather than the current installation.
 
-I can't really judge how well this implementation keeps things "in the language". It relies on the state established by the package installer to give meaning to programs and that state is controlled by the package's @filepath{info.rkt} file. However, this might be a realistic sweet-spot given the importance of packages to the program development and deployment environment.
+I can't really judge how well this implementation keeps things "in the language". It relies on the state established by the package installer to give meaning to programs and that state is controlled by the package's @filepath{info.rkt} file. However, this might be a 
+XXX Evolve into any URL (such as git)realistic sweet-spot given the importance of packages to the program development and deployment environment.
 
 I think the biggest problem with this implementation is that without a tool it could be confusing to figure out what module file a require statement in a program will resolve to. For example, you have to look in the linking directory (and know to look there), read the fully expanded name, then look at that file. In what I believe to be the common case where there is a single version of every package and no conflicting packages it is very obvious which module will be used, provided you know what package provides a collect. I also think it will be common for packages to provide one collect, with the same name, so hopefully that will be easy to. The situation is the same for packageless files although there is an interesting problem in that the meaning of a program can change because changes in the installation state. Even when that occurs, I think the rule of most new packages is easy to follow.
 
@@ -204,12 +205,13 @@ Some decisions in the packaging layer have big effects on the distribution syste
 
 @section{Final Thoughts}
 
-There are a few big open problems in my mind:
+There are a few open problems in my mind:
 @itemize[
-         @item{Informing new users on installation what packages they might want. We could use the reputation and download counts, but we currently have no final "Get Packages" step in our installers.}
+         @item{Informing new users on installation what packages they might want. We could use the reputation and download counts, but we currently have no final "Get Packages" step in our installers. Putting it in DrRacket may not be a good idea, because end users may be students without install permissions.}
+         @item{A quality GUI tool for installation would be nice, but how much overlap with the site should there be?}
          @item{Interacting with operating system distribution. Hopefully this more file-based infrastructure would ease the process, but I don't really know much about this.}
          @item{Removing the pain of installation by keeping safe ZOs on the server.}
          @item{Once this infrastructure is in place, we should spend a good amount of time breaking the core into packages that are distributed optionally and separately. I believe this requires a good "post install" to keep the batteries included, so to speak.}
 ]
 
-Lastly, clearly the existing PLaneT infrastructure needs to stay in place, but I think it should be a vestigial structure that withers away.
+Lastly, clearly the existing PLaneT infrastructure (repository and update application) needs to stay in place, so that old installations will still work and receive maintenance updates. Hopefully PLaneT 2.0 will provide enough to fully replace the older version.
