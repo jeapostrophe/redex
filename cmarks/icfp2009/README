@@ -1,0 +1,5 @@
+Copied from ~plt/collects/redex/example/cont-mark-transform
+
+The model for Jay McCarthy. “Automatically RESTful Web Applications
+Or, Marking Modular Serializable Continuations". International
+Conference on Functional Programming, 2009. (PDF) (Code)
