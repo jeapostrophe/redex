@@ -33,18 +33,12 @@
    ((CMT/a a) ...)]
   [(CMT/r (letrec ([σ w] ...) e))
    (letrec ([σ (CMT/a w)] ...) (CMT e))]
-  [(CMT/r (w-c-m a ...))
-   (w-c-m (CMT/a a) ...)]
-  [(CMT/r (c-c-m [a ...]))
-   (c-c-m [(CMT/a a) ...])]
   [(CMT/r (match a l ...))
    (match (CMT/a a) (CMT/r l) ...)]
   [(CMT/r [(K x ...) e])
    [(K x ...) (CMT e)]]
-  [(CMT/r (abort e))
-   (abort (CMT e))]
   [(CMT/r (call/cc w))
-   ((CMT/a w) ((ref kont/ms) (c-c-m [("square") ("diamond")])))])
+   ((CMT/a w) ((ref kont) (c-c-m [("square")])))])
 
 (define-metafunction SL
   [(CMT/T hole) hole]
@@ -52,20 +46,7 @@
    (v_K (w-c-m ("square") v_K (CMT/T T)))
    (where (a_* ...) ((CMT/a a) ...))
    (where x ,(variable-not-in (term (a_* ...)) (term x)))
-   (where v_K (λ (x) (a_* ... x)))]
-  [(CMT/T (w-c-m a_1 a_2 T))
-   (w-c-m a_1* a_2*
-          ((ref c-w-i-c-m)
-           ("diamond")
-           (λ (x_cms)
-             ((λ (x_cms’) 
-                (w-c-m ("diamond") x_cms’ any_T))
-              ((ref map-set) x_cms a_1* a_2*)))
-           ("nil")))
-   (where any_T (CMT/T T)) ; w-c-m case does not produce a T
-   (where a_1* (CMT/a a_1))
-   (where a_2* (CMT/a a_2))
-   (where (x_cms x_cms’) ,(variables-not-in (term (any_T a_1* a_2*)) '(cms cms’)))])
+   (where v_K (λ (x) (a_* ... x)))])
 
 (define-metafunction SL
   [(resume-marks E) 
@@ -73,8 +54,6 @@
   
   [(resume-marks hole k a_m)
    ("cons" (frame-marks k a_m) ("nil"))]
-  [(resume-marks (w-c-m a_1 a_2 T) k a_m)
-   (resume-marks T k ("cons" ("cons" (CMT a_1) (CMT a_2)) a_m))]
   [(resume-marks (a ... T) k a_m)
    ("cons" (frame-marks k a_m)
            (resume-marks T (λ (x) (a_* ... x)) ("nil")))
@@ -83,11 +62,9 @@
 
 (define-metafunction SL
   [(frame-marks #f a_m)
-   ("cons" ("cons" ("diamond") (reverse-marks a_m))
-           ("nil"))]
+   ("cons" ("nil"))]
   [(frame-marks v_k a_m)
-   ("cons" ("cons" ("diamond") (reverse-marks a_m))
-           ("cons" ("cons" ("square") v_k)
+   ("cons" ("cons" ("cons" ("square") v_k)
                    ("nil")))])
 
 (define-metafunction SL
@@ -104,13 +81,13 @@
             [(ref restore-marks) ,restore-marks]
             [(ref c-w-i-c-m) ,c-w-i-c-m]
             [(ref map-set) ,map-set]
-            [(ref kont/ms) ,kont/ms]
+            [(ref kont) ,kont]
             [(ref equal?) ,TL-equal?]
             [(ref reverse) ,TL-reverse])
      (CMT e))])
 (define TL-e? (redex-match TL e))
 
-(define kont/ms
+(define kont
   (term
    (λ (m)
      (λ (x)

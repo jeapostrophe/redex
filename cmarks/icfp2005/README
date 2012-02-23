@@ -1,5 +1,7 @@
 The model for ICFP 2005 Pettyjohn, Clements, Marshall, Krishnamurthi, Felleisen
 Continuations from Generalized Stack Inspection
                 
-                 
-              
+* TODO Convert CMT
+* TODO Convert CMT tests
+* TODO Convert defunctionalization
+* TODO Refactor

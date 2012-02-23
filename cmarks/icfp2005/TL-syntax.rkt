@@ -29,4 +29,9 @@
   (Σ ∅
      (Σ [σ ↦ v]))
   
-  (K string))
+  (K string)
+
+  (E hole
+     (v ... E))
+  (C (w-c-m v v C)
+     hole))
