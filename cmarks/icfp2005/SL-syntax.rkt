@@ -31,6 +31,15 @@
 
   (E hole
      (v ... E))
+
+  (r (a ...)
+     (letrec ([σ w] ...) e)
+     (call/cc e)
+     (match a l ...))
+  (T hole
+     (a ... T))
+  (k v
+     #f)
   
   (K string))
 

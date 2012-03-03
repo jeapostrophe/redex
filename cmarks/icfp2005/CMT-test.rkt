@@ -15,7 +15,8 @@
      #`(with-handlers ([exn:fail?
                         (λ (exn)
                           #,(syntax/loc stx 
-                              (test-equal (exn-message exn) "")))])
+                              (test-equal (format "~a: ~a" 'expr (exn-message exn))
+                                          (format "~a: ~a" 'expr ""))))])
          (let ([e (term expr)])
            (let ([v ((make-eval -->SL (redex-match SL v))
                      (term (∅ / ,e)))]
@@ -27,95 +28,12 @@
  ((λ (x) ("S" x))
   (call/cc (λ (k) (k ("Z"))))))
 
-; two marks with the same key on the same frame
-(test-translation
- ((λ (x) x)
-  (w-c-m ("a") ("1")
-         (w-c-m ("a") ("2")
-                (c-c-m [("a")])))))
-
-; mark reapplied to the reconstituted continuation
-(test-translation
- (w-c-m ("a") ("1")
-        (w-c-m ("a") ("2")
-               ((λ (x) (x))
-                (call/cc (λ (k) (k (λ () (c-c-m [("a")])))))))))
-
-; variables as keys/values in w-c-ms in context
-(test-translation
- ((λ (x y z)
-    (w-c-m x y
-           (w-c-m x z
-                  ((λ (x) (x))
-                   (call/cc (λ (k) (k (λ () (c-c-m [x])))))))))
-  ("a") ("1") ("2")))
-
-; transforms a context that includes variables in application frame
-(test-translation
- ((λ (f)
-    (f (w-c-m ("a") ("1")
-              ((call/cc (λ (k) (k (λ () (c-c-m [("a")])))))))))
-  (λ (x) x)))
-
-; transformation within installed continuation marks
-(test-translation
- (w-c-m ("a") (λ () (call/cc (λ (k) (k (λ () (c-c-m [("a")]))))))
-        ((λ (frames)
-           (match frames
-             [("cons" cms _)
-              (match cms
-                [("cons" cm _)
-                 (match cm
-                   [("cons" _ t)
-                    ((t))])])]))
-         (c-c-m [("a")]))))
-
-; a continuation, in a values-only position, that contains
-; multiple frames, each with continuation marks
-(test-translation
- (letrec ([(ref k) (κ ((λ (x) ("outer" x))
-                       (w-c-m ("a") ("1")
-                              (w-c-m ("b") ("2")
-                                     ((λ (x) ("inner" x))
-                                      (w-c-m ("a") ("3")
-                                             (w-c-m ("b") ("4")
-                                                    (hole))))))))])
-   ((λ (x) ("skipped" x))
-    ((ref k) (λ () (c-c-m [("a") ("b")]))))))
-
-; produces a call to map-set where one argument is a (K x).
-(test-translation
- (λ (x) (w-c-m ("k" x) ("l") (x))))
-
 ; application and match translation redexes allow variables
 ; in datatype instances
 (test-translation
  (λ (x) (x ("k" x))))
 (test-translation
  (λ (x) (match ("k" x) [("k" x) x])))
-
-; w-c-m translation redex with non-w body
-(test-translation
- (λ (x)
-   (w-c-m ("a") ("b")
-          ("c" x))))
-
-; continuation value in continuation mark of a continuation value
-(test-translation
- ((λ (x) ("skipped" x))
-  ((κ (w-c-m ("a") (κ ((λ (x) ("wrapped" x)) hole))
-             ((λ (x) ("skipped" x))
-              (hole))))
-   (λ ()
-     ((λ (ms)
-        (match ms
-          [("cons" f _)
-           (match f
-             [("cons" m _)
-              (match m
-                [("cons" _ k)
-                 (k ("a"))])])]))
-      (c-c-m [("a")]))))))
 
 (test-->>
  -->TL
@@ -143,11 +61,6 @@
  (make-store [reverse ,TL-reverse])
  (,TL-equal? ("1") ("2"))
  ("false"))
-
-(test-TL-result
- (make-store [reverse ,TL-reverse])
- (w-c-m ("1") ("whatever") (,TL-equal? ("1") ("1")))
- ("true"))
 
 (test-TL-result
  (make-store [equal? ,TL-equal?] [reverse ,TL-reverse] [map-set ,map-set])
@@ -200,8 +113,7 @@
           (abort 
            ((ref resume)
             ("cons"
-             ("cons" ("cons" ("diamond") ("nil"))
-                     ("nil"))
+             ("cons" ("nil"))
              ("nil"))
             x)))))
 (test-equal (term (CMT/a (κ hole))) TL-empty-cont)
@@ -212,13 +124,12 @@
          (abort
           ((ref resume)
            ("cons"
-            ("cons" ("cons" ("diamond") ("nil")) 
-                    ("nil"))
+            ("cons" ("nil"))
             ("cons"
-             ("cons" ("cons" ("diamond") ("nil"))
-                     ("cons"
-                      ("cons" ("square") (λ (x) ((ref f) (ref y) x)))
-                      ("nil")))
+             ("cons"
+              ("cons" 
+               ("cons" ("square") (λ (x) ((ref f) (ref y) x)))
+               ("nil")))
              ("nil")))
            x1)))))
 
@@ -245,7 +156,7 @@
          ,TL-empty-cont)))
 
 (test-equal (term (CMT/r (call/cc f)))
-            (term (f ((ref kont/ms) (c-c-m [("square") ("diamond")])))))
+            (term (f ((ref kont) (c-c-m [("square")])))))
 
 (test-equal (term (CMT/r (match (κ hole) [("nil") (κ hole)]))) 
             (term (match ,TL-empty-cont
@@ -266,7 +177,7 @@
   ((λ (x) ((ref f) (ref y) x))
    (w-c-m ("square") (λ (x) ((ref f) (ref y) x))
           ((λ (k) (k z))
-           ((ref kont/ms) (c-c-m [("square") ("diamond")])))))))
+           ((ref kont) (c-c-m [("square")])))))))
 
 ;; Sub-units of big test
 (test-equal (term (CMT ((ref +) ,(num 1) tmp)))
