@@ -5,11 +5,11 @@
          redex)
 
 (define ((make-eval --> value?) program)
-  (match (unique-normal-form program -->)
+  (match (unique-normal-form program --> raise)
     [(and state `(,_ / ,expr))
      (if (value? expr)
-         (term (answer ,expr))
-         (raise (eval-undefined "stuck" (current-continuation-marks) program state)))]))
+       (term (answer ,expr))
+       (raise (eval-undefined "stuck" (current-continuation-marks) program state)))]))
 (define-struct (eval-undefined exn:fail) (input stuck-state))
 (provide make-eval
          (struct-out eval-undefined))
@@ -24,7 +24,7 @@
   [(answer (κ E))
    procedure])
 
-(define (unique-normal-form t R)
+(define (unique-normal-form t R raise)
   (match (let ([nfs '()]
                [seen (set)])
            (let recur ([u t] [s (max-normalization-steps)])
@@ -38,23 +38,27 @@
            nfs)
     [(list u) u]
     [(list) (raise (normalization-timeout "no normal forms" (current-continuation-marks)))]
-    [_ (error 'unique-normal-form "distinct normal forms")]))
+    [_ (raise (exn:fail (format "~a: ~a" 'unique-normal-form "distinct normal forms")
+                        (current-continuation-marks)))]))
 (define max-normalization-steps (make-parameter +inf.0))
 (define-struct (normalization-timeout exn:fail) ())
 (provide max-normalization-steps
          (struct-out normalization-timeout))
 
+(define (term-raise exn)
+  (term (∅ / ,(exn-message exn))))
+
 (define-syntax (test-result stx)
   (syntax-case stx ()
     [(_ R Σ e v)
-     #`(match (unique-normal-form (term (Σ / e)) R)
+     #`(match (unique-normal-form (term (Σ / e)) R term-raise)
          [`(,_ / ,u)
           #,(syntax/loc stx (test-equal u (term v)))])]))
 
 (define-syntax (test-stuck stx)
   (syntax-case stx ()
     [(_ R v? Σ e)
-     #`(match (unique-normal-form (term (Σ / e)) R)
+     #`(match (unique-normal-form (term (Σ / e)) R term-raise)
          [`(,_ / ,r)
           #,(syntax/loc stx (test-predicate (negate v?) r))])]))
 

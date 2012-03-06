@@ -8,6 +8,11 @@
 
 (test-SL-result
  ∅ 
+ (call/cc (κ hole))
+ (κ hole))
+
+(test-SL-result
+ ∅ 
  ((λ (x) ("S" x)) ("Z"))
  ("S" ("Z")))
 

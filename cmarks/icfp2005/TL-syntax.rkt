@@ -31,7 +31,19 @@
   
   (K string)
 
-  (E hole
+  (D hole
+     (w-c-m v v E)
      (v ... E))
+  (E (side-condition D_1 (term (no-dup-keys D_1 ()))))
   (C (w-c-m v v C)
      hole))
+
+(define-metafunction TL
+  [(no-dup-keys hole (v ...)) 
+   #t]
+  [(no-dup-keys (w-c-m v_i v D) (v_0 ... v_i v_i+1 ...))
+   #f]
+  [(no-dup-keys (w-c-m v_i v D) (v_0 ...))
+   (no-dup-keys D (v_i v_0 ...))]
+  [(no-dup-keys (v ... D) (v_0 ...))
+   (no-dup-keys D ())])
