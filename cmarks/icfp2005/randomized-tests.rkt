@@ -105,13 +105,17 @@
                       [eval-undefined? return])
         (parameterize ([max-normalization-steps 1000])
           (SL-eval (term (∅ / ,expr))))))
+    #;(printf "SL: ~a\n" SL-result)
+    (define texpr
+      (term (translate ,expr)))
+    #;(printf "texpr: ~a\n" (pretty-format texpr))
     (define TL-result
       (dynamic-wind
        (λ () (set-cache-size! 100))
-       (λ () (TL-eval (term (∅ / (translate ,expr)))))
+       (λ () (TL-eval (term (∅ / ,texpr))))
        (λ () (set-cache-size! 350))))
-    (or (equal? SL-result TL-result)
-        (compares-incomparable-keys? expr))))
+    #;(printf "TL: ~a\n" TL-result)
+    (equal? SL-result TL-result)))
 
 (define SL-eval
   (make-eval -->SL (redex-match SL v)))
@@ -126,7 +130,7 @@
 
 (define-extended-language SL-gen SL
   (σ (ref (variable-except resume restore-marks c-w-i-c-m map-set kont/ms equal? last)))
-  (K (side-condition string_1 (not (member (term string_1) '("square" "diamond")))))
+  (K (side-condition string_1 (not (member (term string_1) '("square")))))
   
   (K-tree (K K-tree ...)))
 
@@ -134,9 +138,9 @@
   ; Disables side-conditions on some rules.
   (extend-reduction-relation
    -->SL SL
-   (--> (Σ / (in-hole E (match (K v ...) l ...))) any "2")
-   (--> (Σ / (in-hole E (σ v ...))) any "4")
-   (--> (Σ / (in-hole E_1 (σ v))) any "4’")))
+   (--> (Σ / (in-hole E (match (K v ...) l ...))) any "match")
+   (--> (Σ / (in-hole E (σ v ...))) any "sig beta")
+   (--> (Σ / (in-hole E_1 (σ v))) any "sig cont invoke")))
 
 (define close-program
   (match-lambda
@@ -167,24 +171,6 @@
                (if (set-member? refs σ)
                    expr
                    `(ref ,(random-element refs))))]
-          [`(w-c-m ,k ,v ,e)
-           (define k’
-             (if (val? k)
-                 k
-                 (let retry ([candidate (recur k vars refs keys)]
-                             [retries 0])
-                   (when (> retries 3)
-                     (error 'close "too many"))
-                   (if (set-member? keys candidate)
-                       (retry (list (first (random-constant)) candidate)
-                              (add1 retries))
-                       candidate))))
-           (define ext-keys
-             (if (val? k’)
-                 (set-add keys k’)
-                 keys))
-           `(w-c-m ,k’ ,(recur v vars refs (set))
-                   ,(recur e vars refs ext-keys))]
           [`(letrec ([(ref ,σs) ,es] ...) ,e)
            (define ext-refs (extend refs σs))
            `(letrec ,(for/list ([e es] [σ σs])
@@ -213,23 +199,6 @@
 (define (random-element xs)
   (list-ref (set-map xs values) (random (set-count xs))))
 
-(define (compares-incomparable-keys? expr)
-  (define procedure? (redex-match SL (λ (x ...) e)))
-  (define continuation? (redex-match SL (κ E)))
-  (let/ec return
-    (apply-reduction-relation*
-     (extend-reduction-relation 
-      -->SL SL
-      (--> (Σ / (in-hole E (c-c-m [v ...])))
-           ,(if (andmap comparable? (term (v ...)))
-                (term (Σ / (in-hole E (χ (v ...) E ("nil")))))
-                (return #t))
-           "8"))
-     `(∅ / ,expr))
-    #f))
-
-(define comparable?
-  (let ()
-    (define-extended-language SL’ SL
-      (c σ (K c ...)))
-    (redex-match SL’ c)))
+;; XXX current error
+(require rackunit racket/pretty)
+(check-true (same-result? (term (call/cc (κ hole)))))

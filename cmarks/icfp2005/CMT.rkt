@@ -62,7 +62,7 @@
 
 (define-metafunction SL
   [(frame-marks #f a_m)
-   ("cons" ("nil"))]
+   ("nil")]
   [(frame-marks v_k a_m)
    ("cons" ("cons" ("cons" ("square") v_k)
                    ("nil")))])

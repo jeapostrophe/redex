@@ -113,7 +113,7 @@
           (abort 
            ((ref resume)
             ("cons"
-             ("cons" ("nil"))
+             ("nil")
              ("nil"))
             x)))))
 (test-equal (term (CMT/a (κ hole))) TL-empty-cont)
@@ -124,7 +124,7 @@
          (abort
           ((ref resume)
            ("cons"
-            ("cons" ("nil"))
+            ("nil")
             ("cons"
              ("cons"
               ("cons" 
