@@ -1,8 +1,8 @@
-#lang scheme
+#lang racket
 (require redex/reduction-semantics
-         "common.ss"
-         "sl.ss"
-         "tl.ss")
+         "common.rkt"
+         "sl.rkt"
+         "tl.rkt")
 
 (define-extended-language sl-grammar+cmt
   sl-grammar

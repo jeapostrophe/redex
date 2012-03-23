@@ -1,8 +1,8 @@
-#lang scheme
+#lang racket
 (require redex/reduction-semantics
-         "set.ss"
-         "tl.ss"
-         "common.ss")
+         "set.rkt"
+         "tl.rkt"
+         "common.rkt")
 
 (define result?
   (redex-match tl-grammar (/ Sigma v)))

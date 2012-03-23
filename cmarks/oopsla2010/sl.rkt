@@ -1,6 +1,6 @@
-#lang scheme
+#lang racket
 (require redex/reduction-semantics
-         "set.ss")
+         "set.rkt")
 (provide sl-grammar
          free-vars_sl
          -->_sl)

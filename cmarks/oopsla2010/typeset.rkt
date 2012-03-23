@@ -1,11 +1,11 @@
-#lang scheme
-(require scheme/runtime-path
+#lang racket
+(require racket/runtime-path
          redex/reduction-semantics
          redex/pict
-         "sl.ss"
-         "tl.ss"
-         "cmt.ss"
-         (for-syntax "cmt.ss"))
+         "sl.rkt"
+         "tl.rkt"
+         "cmt.rkt"
+         (for-syntax "cmt.rkt"))
 
 (define-runtime-path typeset "typeset")
 

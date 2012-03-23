@@ -1,4 +1,4 @@
-#lang scheme
+#lang racket
 
 (define (fact n)
   (if (zero? n)

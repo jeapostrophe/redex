@@ -1,10 +1,10 @@
-#lang scheme
+#lang racket
 (require redex/reduction-semantics
          tests/eli-tester
-         "common.ss"
-         "sl.ss"
-         "tl.ss"
-         "cmt.ss")
+         "common.rkt"
+         "sl.rkt"
+         "tl.rkt"
+         "cmt.rkt")
 
 (define cmt-decompose?
   (term-match/single

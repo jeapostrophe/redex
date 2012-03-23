@@ -1,8 +1,8 @@
-#lang scheme
+#lang racket
 (require redex
-         scheme/package
-         "tl.ss"
-         "common.ss")
+         racket/package
+         "tl.rkt"
+         "common.rkt")
 
 ;; Tests
 ;;; Values

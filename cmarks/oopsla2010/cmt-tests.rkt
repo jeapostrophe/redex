@@ -1,8 +1,8 @@
-#lang scheme
+#lang racket
 (require redex
-         "common.ss"
-         "tl.ss"
-         "cmt.ss")
+         "common.rkt"
+         "tl.rkt"
+         "cmt.rkt")
 
 (require tests/eli-tester)
 (test
