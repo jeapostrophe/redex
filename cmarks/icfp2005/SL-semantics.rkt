@@ -2,7 +2,11 @@
 
 (require "SL-syntax.rkt"
          redex)
-(provide -->SL)
+(provide -->SL
+         store-set
+         matches
+         store-lookup
+         subst-n)
 
 (define -->SL
   (reduction-relation
@@ -18,10 +22,9 @@
    (--> (Σ / (in-hole E (letrec ([σ v] ...) e)))
         ((store-set Σ [σ ↦ v] ...) / (in-hole E e))
         "letrec")
-   (--> (Σ / (in-hole E (σ v ...)))
+   (--> (Σ / (in-hole E (σ v ..._0)))
         (Σ / (in-hole E (subst-n (x v) ... e)))
-        (where (λ (x ...) e) (store-lookup Σ σ))
-        (side-condition (= (length (term (v ...))) (length (term (x ...)))))
+        (where (λ (x ..._0) e) (store-lookup Σ σ))
         "sig beta")
    (--> (Σ / (in-hole E_1 (σ v)))
         (Σ / (in-hole E_2 v))

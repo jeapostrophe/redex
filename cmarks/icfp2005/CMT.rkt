@@ -3,12 +3,14 @@
 (require "SL-syntax.rkt"
          "SL-semantics.rkt"
          "TL-syntax.rkt"
+         "../define-term.rkt"
          redex)
 
-(provide CMT translate
+(provide CMT translate kont
          TL-equal? TL-reverse 
          map-set c-w-i-c-m
          restore-marks resume
+         resume-marks frame-marks reverse-marks
          CMT/a CMT/r CMT/T)
 
 (define-metafunction SL
@@ -87,13 +89,13 @@
      (CMT e))])
 (define TL-e? (redex-match TL e))
 
-(define kont
+(define-lw kont
   (term
    (λ (m)
      (λ (x)
        (abort ((ref resume) m x))))))
 
-(define c-w-i-c-m
+(define-lw c-w-i-c-m
   (term
    (λ (k proc default-v)
      ((λ (cms)
@@ -111,7 +113,7 @@
          ((ref reverse) cms ("nil"))))
       (c-c-m [k])))))
 
-(define map-set
+(define-lw map-set
   (term
    (λ (map k v)
      (match map
@@ -128,7 +130,7 @@
                   ((ref map-set) rest k v))]))
             ((ref equal?) k k’))])]))))
 
-(define restore-marks
+(define-lw restore-marks
   (term
    (λ (cms thnk)
      (match cms
@@ -139,7 +141,7 @@
            (w-c-m m v
                   ((ref restore-marks) cms thnk))])]))))
 
-(define resume
+(define-lw resume
   (term
    (λ (l v)
      (match l
@@ -183,7 +185,7 @@
                                   (λ ()
                                     (w-c-m ("diamond") u ((ref resume) l v))))))])])])])])]))))
 
-(define TL-equal?
+(define-lw TL-equal?
   (term
    (λ (x y)
      ((λ (cms)
@@ -200,7 +202,7 @@
              (w-c-m y ("")
                     (c-c-m [x y])))))))
 
-(define TL-reverse
+(define-lw TL-reverse
   (term
    (λ (xs onto)
      (match xs

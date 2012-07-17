@@ -1,5 +1,6 @@
 #!/bin/sh
 
+find . -name compiled -exec rm -fr {} \;
 for p in icfp2005 icfp2009 oopsla2010 ; do
     echo ${p}:
     cd ${p}

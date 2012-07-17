@@ -1,7 +1,7 @@
 #lang racket
 
 (require redex)
-(provide TL)
+(provide TL no-dup-keys)
 
 (define-language TL
   (e a

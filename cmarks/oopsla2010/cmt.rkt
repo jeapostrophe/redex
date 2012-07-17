@@ -1,5 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
+         "../define-term.rkt"
          "common.rkt"
          "sl.rkt"
          "tl.rkt")
@@ -131,7 +132,7 @@
   [(CMT-top e_1)
    (CMT-e e_1)])
 
-(define resume-impl
+(define-lw resume-impl
   (term
    (λ (l v)
      (match l
@@ -146,7 +147,7 @@
                 [("none")
                  => (abort ("not marks"))])])]))))
 
-(define callcc-impl
+(define-lw callcc-impl
   (term
    (λ (f)
      ((λ (k)
@@ -154,7 +155,7 @@
       ((λ (m)
          (λ (x) (abort ((! "resume") m x))))
        (c-c-m ("square")))))))
-(define safe-callcc-impl
+(define-lw safe-callcc-impl
   (term
    (λ (f)
      ((λ (is-safe?)
@@ -181,6 +182,7 @@
   tl-version)
 
 (provide sl-grammar+cmt
+         tl-grammar+cmt
          sl-context->marks
          CMT
          CMT-top
