@@ -52,8 +52,7 @@
 
 (define-metafunction SL
   [(resume-marks E) 
-   (resume-marks E #f ("nil"))]
-  
+   (resume-marks E #f ("nil"))]  
   [(resume-marks hole k a_m)
    ("cons" (frame-marks k a_m) ("nil"))]
   [(resume-marks (a ... T) k a_m)
@@ -141,6 +140,10 @@
            (w-c-m m v
                   ((ref restore-marks) cms thnk))])]))))
 
+;; How do you get a frame with both marks where square appears first?
+;; All frames not introduced by "runtime" calls are marked first with
+;; square (thus reported after any diamond mark), and `resume' seems
+;; to restore this invariant. Use randomized testing to investigate.
 (define-lw resume
   (term
    (λ (l v)
@@ -158,10 +161,6 @@
                    [("nil") 
                     (u (w-c-m ("square") u 
                               ((ref resume) l v)))]
-                   ; How do you get a frame with both marks where square appears first?
-                   ; All frames not introduced by "runtime" calls are marked first with
-                   ; square (thus reported after any diamond mark), and `resume' seems
-                   ; to restore this invariant. Use randomized testing to investigate.
                    [("cons" cms-mark _)
                     (match cms-mark
                       [("cons" _ cms)

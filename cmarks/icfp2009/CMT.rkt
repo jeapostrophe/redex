@@ -3,11 +3,12 @@
 (require "SL-syntax.rkt"
          "SL-semantics.rkt"
          "TL-syntax.rkt"
+         "../define-term.rkt"
          redex)
 
 (provide CMT translate
          TL-equal? TL-reverse 
-         map-set c-w-i-c-m
+         map-set c-w-i-c-m kont/ms
          resume-marks frame-marks reverse-marks
          restore-marks resume
          CMT/a CMT/r CMT/T)
